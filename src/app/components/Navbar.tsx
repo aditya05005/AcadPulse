@@ -41,7 +41,7 @@ export function Navbar() {
               <BarChart3 className="h-5 w-5 text-accent-foreground" />
             </div>
             <span className="text-lg font-semibold tracking-tight">
-              Academic Health Scorecard
+              AcadPulse
             </span>
           </Link>
 
@@ -101,9 +101,6 @@ export function Navbar() {
               </Link>
               <Link to="/courses" className={'text-sm transition-colors ' + (isActive('/courses') ? 'text-foreground' : 'text-muted-foreground hover:text-foreground')}>
                 Courses
-              </Link>
-              <Link to="/predict" className={'text-sm transition-colors ' + (isActive('/predict') ? 'text-foreground' : 'text-muted-foreground hover:text-foreground')}>
-                Prediction Tool
               </Link>
               <Link to="/insights" className={'text-sm transition-colors ' + (isActive('/insights') ? 'text-foreground' : 'text-muted-foreground hover:text-foreground')}>
                 Insights

@@ -43,10 +43,107 @@ function getStatusColor(status: Course['status']) {
   return 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20';
 }
 
+function formatLocalDateKey(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+type TimelineEvent = {
+  type: 'study' | Reminder['type'];
+  title: string;
+  time: string;
+  dateTime: number;
+};
+
+type TimelineDay = {
+  day: string;
+  date: string;
+  isoDate: string;
+  events: TimelineEvent[];
+};
+
+function startOfWeek(date: Date): Date {
+  const result = new Date(date);
+  const day = result.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  result.setHours(0, 0, 0, 0);
+  result.setDate(result.getDate() + diff);
+  return result;
+}
+
+function formatEventTime(date: Date): string {
+  if (
+    date.getHours() === 0 &&
+    date.getMinutes() === 0 &&
+    date.getSeconds() === 0 &&
+    date.getMilliseconds() === 0
+  ) {
+    return 'All day';
+  }
+  return date.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+  }).toLowerCase();
+}
+
+function buildWeeklyTimeline(courses: Course[], reminders: Reminder[]): TimelineDay[] {
+  const weekStart = startOfWeek(new Date());
+  const timeline: TimelineDay[] = Array.from({ length: 7 }, (_, index) => {
+    const current = new Date(weekStart);
+    current.setDate(weekStart.getDate() + index);
+    const isoDate = formatLocalDateKey(current);
+    return {
+      day: current.toLocaleDateString('en-US', { weekday: 'short' }),
+      date: current.toLocaleDateString('en-US', { day: '2-digit' }),
+      isoDate,
+      events: [],
+    };
+  });
+
+  const byDate = new Map(timeline.map((day) => [day.isoDate, day]));
+
+  reminders.forEach((reminder) => {
+    const dueDate = new Date(reminder.dueDate);
+    if (Number.isNaN(dueDate.getTime())) return;
+    const day = byDate.get(formatLocalDateKey(dueDate));
+    if (!day) return;
+
+    day.events.push({
+      type: reminder.type,
+      title: reminder.courseName ? `${reminder.courseName}: ${reminder.description}` : reminder.description,
+      time: formatEventTime(dueDate),
+      dateTime: dueDate.getTime(),
+    });
+  });
+
+  courses.forEach((course) => {
+    const studySource = course.lastStudied ?? course.createdAt;
+    const studyDate = new Date(studySource);
+    if (Number.isNaN(studyDate.getTime())) return;
+    const day = byDate.get(formatLocalDateKey(studyDate));
+    if (!day) return;
+
+    day.events.push({
+      type: 'study',
+      title: `${course.name} study`,
+      time: formatEventTime(studyDate),
+      dateTime: studyDate.getTime(),
+    });
+  });
+
+  timeline.forEach((day) => {
+    day.events.sort((a, b) => a.dateTime - b.dateTime);
+  });
+
+  return timeline;
+}
+
 // ─── Course Detail ─────────────────────────────────────────────────────────────
 
 function CourseDetail({ course, onBack }: { course: Course; onBack: () => void }) {
-  const { updateLastStudied, markAttendance, addResource, removeResource, courses } = useCourses();
+  const { updateLastStudied, markAttendance, addResource, removeResource, updateCourse, removeCourse, courses } = useCourses();
 
   // Timer
   const [running, setRunning] = useState(false);
@@ -115,6 +212,17 @@ function CourseDetail({ course, onBack }: { course: Course; onBack: () => void }
   const [newLink, setNewLink] = useState({ label: '', url: '' });
   const [linkSaving, setLinkSaving] = useState(false);
   const [linkError, setLinkError] = useState('');
+  const [progressDraft, setProgressDraft] = useState(course.progress);
+  const [progressSaving, setProgressSaving] = useState(false);
+  const [progressSaved, setProgressSaved] = useState(false);
+  const [progressError, setProgressError] = useState('');
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [deleteSaving, setDeleteSaving] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
+
+  useEffect(() => {
+    setProgressDraft(live.progress);
+  }, [live.progress]);
 
   const handleAddResource = async () => {
     if (!newLink.label || !newLink.url) return;
@@ -141,6 +249,32 @@ function CourseDetail({ course, onBack }: { course: Course; onBack: () => void }
       await removeResource(course.id, linkId);
     } catch (e) {
       console.error('Failed to remove resource:', e);
+    }
+  };
+
+  const handleSaveProgress = async () => {
+    setProgressSaving(true);
+    setProgressSaved(false);
+    setProgressError('');
+    try {
+      await updateCourse({ ...live, progress: progressDraft });
+      setProgressSaved(true);
+    } catch (e) {
+      setProgressError(e instanceof Error ? e.message : 'Failed to update progress.');
+    } finally {
+      setProgressSaving(false);
+    }
+  };
+
+  const handleDeleteCourse = async () => {
+    setDeleteSaving(true);
+    setDeleteError('');
+    try {
+      await removeCourse(live.id);
+      onBack();
+    } catch (e) {
+      setDeleteError(e instanceof Error ? e.message : 'Failed to delete course.');
+      setDeleteSaving(false);
     }
   };
 
@@ -173,6 +307,47 @@ function CourseDetail({ course, onBack }: { course: Course; onBack: () => void }
           <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
             <Clock className="h-3.5 w-3.5" /><span>{live.deadline}</span>
           </div>
+        </div>
+
+        <div className="mb-6 rounded-xl border border-border bg-card p-6">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-lg font-semibold">Course Progress</h2>
+            <span className="text-sm font-medium text-accent">{progressDraft}%</span>
+          </div>
+          <input
+            type="range"
+            min="0"
+            max="100"
+            value={progressDraft}
+            onChange={(e) => {
+              setProgressDraft(Number(e.target.value));
+              setProgressSaved(false);
+              setProgressError('');
+            }}
+            className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-muted accent-accent"
+          />
+          <div className="mt-4 flex items-center gap-3">
+            <button
+              onClick={handleSaveProgress}
+              disabled={progressSaving || progressDraft === live.progress}
+              className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {progressSaving ? 'Saving...' : 'Save Progress'}
+            </button>
+            <button
+              onClick={() => {
+                setProgressDraft(live.progress);
+                setProgressSaved(false);
+                setProgressError('');
+              }}
+              disabled={progressSaving || progressDraft === live.progress}
+              className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Reset
+            </button>
+          </div>
+          {progressSaved && <p className="mt-3 text-sm text-emerald-600 dark:text-emerald-400">Progress updated.</p>}
+          {progressError && <p className="mt-3 text-sm text-rose-600 dark:text-rose-400">{progressError}</p>}
         </div>
 
         {/* Study Timer */}
@@ -320,6 +495,51 @@ function CourseDetail({ course, onBack }: { course: Course; onBack: () => void }
             </div>
           )}
         </div>
+
+        <div className="mt-6 rounded-xl border border-rose-500/20 bg-rose-500/5 p-6">
+          <h2 className="text-lg font-semibold text-rose-600 dark:text-rose-400">Delete Course</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            This removes the course and its linked study sessions, attendance, and resources.
+          </p>
+          {!deleteConfirm ? (
+            <button
+              onClick={() => {
+                setDeleteConfirm(true);
+                setDeleteError('');
+              }}
+              className="mt-4 flex items-center gap-2 rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-2.5 text-sm font-medium text-rose-600 transition-all hover:bg-rose-500/20 dark:text-rose-400"
+            >
+              <Trash2 className="h-4 w-4" />Delete Course
+            </button>
+          ) : (
+            <div className="mt-4">
+              <p className="mb-3 text-sm text-rose-600 dark:text-rose-400">
+                Delete <span className="font-medium">{live.name}</span>? This cannot be undone.
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleDeleteCourse}
+                  disabled={deleteSaving}
+                  className="flex items-center gap-2 rounded-lg bg-rose-600 px-4 py-2.5 text-sm font-medium text-white transition-all hover:opacity-90 disabled:opacity-50"
+                >
+                  {deleteSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                  Confirm Delete
+                </button>
+                <button
+                  onClick={() => {
+                    setDeleteConfirm(false);
+                    setDeleteError('');
+                  }}
+                  disabled={deleteSaving}
+                  className="rounded-lg border border-border px-4 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+              </div>
+              {deleteError && <p className="mt-3 text-sm text-rose-600 dark:text-rose-400">{deleteError}</p>}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -343,8 +563,8 @@ function AddReminderModal({ courses, onAdd, onClose }: AddReminderModalProps) {
   const [error, setError] = useState('');
 
   const handle = async () => {
-    if (!desc || !date) { setError('Description and date are required.'); return; }
-    const dueISO = time ? new Date(date + 'T' + time).toISOString() : new Date(date).toISOString();
+    if (!desc || !date || !time) { setError('Description, date, and time are required.'); return; }
+    const dueISO = new Date(date + 'T' + time).toISOString();
     const found = courses.find((c) => c.id === courseId);
     const reminder: Reminder = {
       id: crypto.randomUUID(),
@@ -406,7 +626,7 @@ function AddReminderModal({ courses, onAdd, onClose }: AddReminderModalProps) {
                 className="w-full rounded-lg border border-border bg-muted/30 px-4 py-2 text-sm focus:border-accent focus:outline-none" />
             </div>
             <div>
-              <label className="mb-2 block text-sm font-medium">Time (optional)</label>
+              <label className="mb-2 block text-sm font-medium">Time (24-hour HH:MM)</label>
               <input type="time" value={time} onChange={(e) => setTime(e.target.value)}
                 className="w-full rounded-lg border border-border bg-muted/30 px-4 py-2 text-sm focus:border-accent focus:outline-none" />
             </div>
@@ -540,18 +760,6 @@ function AddCourseModal({ onAdd, onClose }: AddCourseModalProps) {
   );
 }
 
-// ─── Weekly Timeline ───────────────────────────────────────────────────────────
-
-const weeklyTimeline = [
-  { day: 'Mon', date: '17', events: [{ type: 'study', title: 'DSA Study', time: '2pm' }] },
-  { day: 'Tue', date: '18', events: [{ type: 'deadline', title: 'DSA Assignment', time: '11:59pm' }] },
-  { day: 'Wed', date: '19', events: [{ type: 'test', title: 'Math Quiz', time: '10am' }] },
-  { day: 'Thu', date: '20', events: [{ type: 'study', title: 'ML Study', time: '3pm' }] },
-  { day: 'Fri', date: '21', events: [] },
-  { day: 'Sat', date: '22', events: [{ type: 'study', title: 'Web Dev', time: '1pm' }] },
-  { day: 'Sun', date: '23', events: [] },
-];
-
 // ─── Main CourseHub ────────────────────────────────────────────────────────────
 
 export function CourseHub() {
@@ -559,6 +767,7 @@ export function CourseHub() {
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [showAddCourse, setShowAddCourse] = useState(false);
   const [showAddReminder, setShowAddReminder] = useState(false);
+  const weeklyTimeline = buildWeeklyTimeline(courses, reminders);
 
   // Keep selectedCourse in sync with context updates
   useEffect(() => {
@@ -587,12 +796,12 @@ export function CourseHub() {
           </button>
         </div>
 
-        {/* Impact Note */}
+        {/* Note */}
         <div className="mb-8 rounded-xl border border-border bg-card/50 p-4">
           <div className="flex gap-3">
             <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-accent" />
             <div className="text-sm text-muted-foreground">
-              Course activity impacts your <span className="font-medium text-foreground">Academic Health Score</span>. Missing deadlines reduces your score, while completing tasks on time improves it.
+              "Small progress, repeated consistently, compounds into mastery."
             </div>
           </div>
         </div>

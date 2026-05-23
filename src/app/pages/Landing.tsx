@@ -43,17 +43,17 @@ export function Landing() {
 
               <div className="mt-10 flex flex-wrap gap-4">
                 <Link
-                  to="/predict"
+                  to="/dashboard"
                   className="inline-flex items-center gap-2 rounded-lg bg-accent px-6 py-3 text-sm font-medium text-accent-foreground transition-all hover:opacity-90 hover:shadow-lg"
                 >
-                  Try Prediction Tool
+                  Open Dashboard
                   <ArrowRight className="h-4 w-4" />
                 </Link>
                 <Link
-                  to="/dashboard"
+                  to="/courses"
                   className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-6 py-3 text-sm font-medium transition-all hover:bg-muted"
                 >
-                  View Dashboard
+                  Explore Courses
                 </Link>
               </div>
 
@@ -169,7 +169,7 @@ export function Landing() {
       </section>
 
       {/* Features Section */}
-      <section className="border-b border-border bg-card">
+      <section id="about" className="border-b border-border bg-card">
         <div className="mx-auto max-w-7xl px-6 py-24 lg:px-8">
           <div className="text-center">
             <h2 className="text-3xl font-semibold tracking-tight lg:text-4xl">Everything you need to succeed</h2>
@@ -180,9 +180,9 @@ export function Landing() {
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-accent/10">
                 <TrendingUp className="h-6 w-6 text-accent" />
               </div>
-              <h3 className="mt-6 text-xl font-semibold">Predict Performance</h3>
+              <h3 className="mt-6 text-xl font-semibold">Track Progress</h3>
               <p className="mt-3 text-sm text-muted-foreground">
-                Enter your current metrics across subjects and get a grade estimate with actionable suggestions.
+                Keep course progress current so your dashboard reflects where each subject actually stands.
               </p>
             </div>
             <div className="group rounded-2xl border border-border bg-background p-8 transition-all hover:border-accent hover:shadow-lg">
@@ -217,7 +217,7 @@ export function Landing() {
             {[
               { quote: 'This helped me identify weak areas early. I improved my study habits and ended up with an A!', name: 'Sarah Chen', role: 'Computer Science Student' },
               { quote: 'The course tracker is exactly what I needed. Logging attendance and study time keeps me accountable.', name: 'Marcus Johnson', role: 'Business Major' },
-              { quote: 'The reminders and prediction tool are spot on. Completely changed how I plan my semester.', name: 'Emma Rodriguez', role: 'Engineering Student' },
+              { quote: 'The reminders keep my semester organized. I always know what needs attention next.', name: 'Emma Rodriguez', role: 'Engineering Student' },
             ].map((t, i) => (
               <div key={i} className="rounded-2xl border border-border bg-card p-8">
                 <div className="flex gap-1">
@@ -238,10 +238,10 @@ export function Landing() {
       <section className="bg-card">
         <div className="mx-auto max-w-7xl px-6 py-24 lg:px-8">
           <div className="rounded-3xl border border-border bg-background p-12 text-center">
-            <h2 className="text-3xl font-semibold tracking-tight lg:text-4xl">Ready to take control of your grades?</h2>
-            <p className="mt-4 text-lg text-muted-foreground">Start tracking and get ahead with Academic Health Scorecard</p>
+            <h2 className="text-3xl font-semibold tracking-tight lg:text-4xl">Ready to take control of your semester?</h2>
+            <p className="mt-4 text-lg text-muted-foreground">Start tracking and stay ahead with AcadPulse</p>
             <div className="mt-8">
-              <Link to="/predict" className="inline-flex items-center gap-2 rounded-lg bg-accent px-8 py-4 text-sm font-medium text-accent-foreground transition-all hover:opacity-90 hover:shadow-lg">
+              <Link to="/signin" className="inline-flex items-center gap-2 rounded-lg bg-accent px-8 py-4 text-sm font-medium text-accent-foreground transition-all hover:opacity-90 hover:shadow-lg">
                 Get Started
                 <ArrowRight className="h-4 w-4" />
               </Link>
