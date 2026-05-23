@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { TrendingUp, Calendar, FileText, BookOpen, Clock } from 'lucide-react';
+import { TrendingUp, Calendar, BookOpen, Clock, FileText } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCourses } from '../context/CourseContext';
 import type { Course } from '../../lib/types';
@@ -34,16 +34,6 @@ function calcHealthScore(courses: Course[]): number {
   const prog  = calcAvgProgress(courses);
   const study = Math.min(calcStudyHoursThisWeek(courses) / 10, 1) * 100;
   return Math.round(att * 0.4 + prog * 0.4 + study * 0.2);
-}
-
-function scoreToGrade(score: number): string {
-  if (score >= 90) return 'A';
-  if (score >= 85) return 'A-';
-  if (score >= 80) return 'B+';
-  if (score >= 75) return 'B';
-  if (score >= 70) return 'B-';
-  if (score >= 65) return 'C+';
-  return 'C';
 }
 
 function buildAttendanceTrend(courses: Course[]) {
@@ -134,7 +124,6 @@ export function Dashboard() {
     attendancePct: calcAttendancePct(courses),
     studyHours:   calcStudyHoursThisWeek(courses),
     avgProgress:  calcAvgProgress(courses),
-    grade:        scoreToGrade(calcHealthScore(courses)),
     trend:        buildAttendanceTrend(courses),
     performance:  buildPerformanceData(courses),
     activity:     buildRecentActivity(courses),
@@ -193,12 +182,11 @@ export function Dashboard() {
             </div>
 
             {/* Quick Stats */}
-            <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-4">
+            <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-3">
               {[
                 { icon: Calendar,   value: `${stats.attendancePct}%`, label: 'Attendance' },
                 { icon: TrendingUp, value: `${stats.avgProgress}%`,   label: 'Avg Progress' },
                 { icon: Clock,      value: `${stats.studyHours}h`,    label: 'Study This Week' },
-                { icon: FileText,   value: stats.grade,               label: 'Predicted Grade' },
               ].map(({ icon: Icon, value, label }) => (
                 <div key={label} className="rounded-xl border border-border bg-card p-6 transition-all hover:border-accent">
                   <div className="flex items-center gap-3">

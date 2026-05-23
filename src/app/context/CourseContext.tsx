@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect, useRef, ReactNode } fro
 import type { Course, Reminder, ResourceLink, AttendanceRecord, StudySession } from '../../lib/types';
 import {
   getCourses, getReminders,
-  upsertCourse,
+  upsertCourse, deleteCourse as dbDeleteCourse,
   insertResource, deleteResource as dbDeleteResource,
   insertAttendance,
   insertStudySession, updateLastStudied as dbUpdateLastStudied,
@@ -17,6 +17,7 @@ interface CourseContextType {
   loading: boolean;
   addCourse: (course: Course) => Promise<void>;
   updateCourse: (course: Course) => Promise<void>;
+  removeCourse: (id: string) => Promise<void>;
   addResource: (courseId: string, link: ResourceLink) => Promise<void>;
   removeResource: (courseId: string, linkId: string) => Promise<void>;
   updateLastStudied: (courseId: string, date: string, session: StudySession) => Promise<void>;
@@ -118,6 +119,18 @@ export function CourseProvider({ children }: { children: ReactNode }) {
     setCourses((prev) => prev.map((c) => (c.id === course.id ? course : c)));
   };
 
+  const removeCourse = async (id: string) => {
+    await dbDeleteCourse(id);
+    setCourses((prev) => prev.filter((c) => c.id !== id));
+    setReminders((prev) =>
+      prev.map((reminder) =>
+        reminder.courseId === id
+          ? { ...reminder, courseId: undefined, courseName: undefined }
+          : reminder
+      )
+    );
+  };
+
   // ── Resources ──────────────────────────────────────────────────────────────
 
   const addResource = async (courseId: string, link: ResourceLink) => {
@@ -178,7 +191,7 @@ export function CourseProvider({ children }: { children: ReactNode }) {
   return (
     <CourseContext.Provider value={{
       courses, reminders, loading,
-      addCourse, updateCourse,
+      addCourse, updateCourse, removeCourse,
       addResource, removeResource,
       updateLastStudied, markAttendance,
       addReminder, removeReminder,

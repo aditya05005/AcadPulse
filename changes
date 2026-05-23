@@ -1,0 +1,48 @@
+change name academic health dashboard to AcadPulse 
+
+on the course hub page:
+in the smart reminders section there is add button. clikcing it asks for some details. in that it says time(optional). do not make it optional. make it compulsory and make sure you use it internally. and specify the time format instead of 'optional' inside the brackets.
+when we click on a course card we get the timer, links and stuff but I want the progress bar there to be editable and the changes are to be saved. otherwise the progress it is just a number that is netiher being incremented nor decremented nor analyzed.
+'Course activity impacts your Academic Health Score. Missing deadlines reduces your score, while completing tasks on time improves it.' remove this line from course hub page. instead put a nice quote
+
+on the insights page: 
+
+remove 'goals acheived' card
+remove hardcoded 42h in study time and replace it with acutal hours studied in a month (or week and change the ui accordingly)
+remove key takeaway
+remove performance measure and add consistency score instead(like the number of days actually studied in a week - any subject any duration counts) it can thus have max value of 7 and min 0 
+remove prediction tool page
+remove the fake graphs instead add these:
+    weekly total study time coursewise
+    progress coursewise
+    attendance percentage course wise
+
+remove the prediction tool page
+
+on home page:
+remove 'predict performance' card
+in 'Trusted by students' section remove this line "The reminders and prediction tool are spot on. Completely changed how I plan my semester." dont make reference to prediction tool.
+
+on dashboard:
+remove 'Predicted Grade' card.
+Attendance, Avg Progress, Study this Week cards should have real data and not hardcoded. 
+
+21/5/2026, 19:40
+on Home page:
+Two buttons named 'Open Dashboard' and 'View Dashboard'. Redundancy.
+Token usage: total=5,14,234 input=4,88,037 (+ 39,16,288 cached) output=26,197 (reasoning 4,099)
+To continue this session, run codex resume 019e4a0f-0657-7603-8ae8-781f0f357393
+
+23/5/2026, 11:49
+weekly timeline gltich:
+in coursehub>smart remainders> put a subject, todays date and time, sometimes it stacks to 24th (sunday). check the weekly timeline code. 
+
+23/5/2026 12:09
+in smart reminders section if the remainder is of todays date it is automatically marked as missed even though the time has not yet come(example if I set for 5 pm today, it still shows as missed while its 12:09 now)
+fixed
+
+23/5/2026 13:22
+
+
+
+

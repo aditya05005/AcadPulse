@@ -206,6 +206,17 @@ export async function signOut(): Promise<void> {
   assert(error, 'signOut');
 }
 
+export async function requestPasswordReset(email: string): Promise<void> {
+  const redirectTo = `${window.location.origin}/signin`;
+  const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+  assert(error, 'requestPasswordReset');
+}
+
+export async function updatePassword(password: string): Promise<void> {
+  const { error } = await supabase.auth.updateUser({ password });
+  assert(error, 'updatePassword');
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // COURSES
 // ═══════════════════════════════════════════════════════════════════════════════
