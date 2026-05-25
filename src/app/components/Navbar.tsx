@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
-import { Moon, Sun, BarChart3, UserCircle2, LogIn, LogOut, ChevronDown } from 'lucide-react';
+import { Moon, Sun, BarChart3, UserCircle2, LogIn, LogOut, ChevronDown, Menu, X } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -10,6 +10,7 @@ export function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
   const [profileOpen, setProfileOpen] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const isActive = (path: string) => location.pathname === path;
@@ -28,12 +29,13 @@ export function Navbar() {
   const handleSignOut = async () => {
     await signOut();
     setProfileOpen(false);
+    setMobileNavOpen(false);
     navigate('/');
   };
 
   return (
     <nav className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-xl">
-      <div className="mx-auto max-w-7xl px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 transition-opacity hover:opacity-80">
@@ -46,7 +48,7 @@ export function Navbar() {
           </Link>
 
           {/* Navigation Links */}
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-3 sm:gap-6">
             <div className="hidden items-center gap-6 md:flex">
               {/* Profile button — left of Home */}
               <div className="relative" ref={dropdownRef}>
@@ -107,6 +109,14 @@ export function Navbar() {
               </Link>
             </div>
 
+            <button
+              onClick={() => setMobileNavOpen((open) => !open)}
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card transition-colors hover:bg-muted md:hidden"
+              aria-label="Toggle navigation"
+            >
+              {mobileNavOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+            </button>
+
             {/* Theme Toggle */}
             <button
               onClick={toggleTheme}
@@ -117,6 +127,57 @@ export function Navbar() {
             </button>
           </div>
         </div>
+
+        {mobileNavOpen && (
+          <div className="border-t border-border py-3 md:hidden">
+            <div className="space-y-1">
+              <Link
+                to="/"
+                onClick={() => setMobileNavOpen(false)}
+                className={'block rounded-lg px-3 py-2 text-sm transition-colors ' + (isActive('/') ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted hover:text-foreground')}
+              >
+                Home
+              </Link>
+              <Link
+                to="/dashboard"
+                onClick={() => setMobileNavOpen(false)}
+                className={'block rounded-lg px-3 py-2 text-sm transition-colors ' + (isActive('/dashboard') ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted hover:text-foreground')}
+              >
+                Dashboard
+              </Link>
+              <Link
+                to="/courses"
+                onClick={() => setMobileNavOpen(false)}
+                className={'block rounded-lg px-3 py-2 text-sm transition-colors ' + (isActive('/courses') ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted hover:text-foreground')}
+              >
+                Courses
+              </Link>
+              <Link
+                to="/insights"
+                onClick={() => setMobileNavOpen(false)}
+                className={'block rounded-lg px-3 py-2 text-sm transition-colors ' + (isActive('/insights') ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted hover:text-foreground')}
+              >
+                Insights
+              </Link>
+              {user ? (
+                <button
+                  onClick={handleSignOut}
+                  className="block w-full rounded-lg px-3 py-2 text-left text-sm text-rose-600 transition-colors hover:bg-rose-500/10 dark:text-rose-400"
+                >
+                  Sign Out
+                </button>
+              ) : (
+                <Link
+                  to="/signin"
+                  onClick={() => setMobileNavOpen(false)}
+                  className="block rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                >
+                  Sign In
+                </Link>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </nav>
   );

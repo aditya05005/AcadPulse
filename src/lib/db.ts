@@ -269,10 +269,11 @@ export async function insertAttendance(
 
 export async function insertStudySession(
   courseId: string, session: StudySession
-): Promise<void> {
+) : Promise<void> {
   const userId = await uid();
   const { error } = await supabase
-    .from('study_sessions').insert(sessionToRow(courseId, userId, session));
+    .from('study_sessions')
+    .insert(sessionToRow(courseId, userId, session));
   assert(error, 'insertStudySession');
 }
 

@@ -41,7 +41,9 @@ in coursehub>smart remainders> put a subject, todays date and time, sometimes it
 in smart reminders section if the remainder is of todays date it is automatically marked as missed even though the time has not yet come(example if I set for 5 pm today, it still shows as missed while its 12:09 now)
 fixed
 
-23/5/2026 13:22
+24/5/2026 14:31
+make site mobile friendly. on loading the site on phone, the home , courses, dashboard insights do not appear. the layout may be overflowing. fix it using css media queries or whatever way you know. you might also swap pixels for percentages
+also remvoe Github: aditya05005 anchor. the Contact already redirects you there.
 
 
 
