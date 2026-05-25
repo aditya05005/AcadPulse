@@ -45,6 +45,32 @@ fixed
 make site mobile friendly. on loading the site on phone, the home , courses, dashboard insights do not appear. the layout may be overflowing. fix it using css media queries or whatever way you know. you might also swap pixels for percentages
 also remvoe Github: aditya05005 anchor. the Contact already redirects you there.
 
+25/05/2026 16:54
+Found these errors while running npm run build: 
+src/app/components/ui/calendar.tsx:63:9 - error TS2353: Object literal may only specify known properties, and 'IconLeft' does not exist in type 'Partial<CustomComponents>'.
+63         IconLeft: ({ className, ...props }) => (
+           ~~~~~~~~
+  node_modules/react-day-picker/dist/esm/types/props.d.ts:294:5
+    294     components?: Partial<CustomComponents>;
+            ~~~~~~~~~~
+    The expected type comes from property 'components' which is declared here on type 'IntrinsicAttributes & DayPickerProps'
+src/app/components/ui/calendar.tsx:63:22 - error TS7031: Binding element 'className' implicitly has an 'any' type.
+63         IconLeft: ({ className, ...props }) => (
+                        ~~~~~~~~~
+src/app/components/ui/calendar.tsx:66:23 - error TS7031: Binding element 'className' implicitly has an 'any' type.
+66         IconRight: ({ className, ...props }) => (
+                         ~~~~~~~~~
+src/lib/supabase.ts:3:33 - error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+3 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+                                  ~~~
+src/lib/supabase.ts:4:37 - error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+4 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+                                      ~~~
+src/main.tsx:3:8 - error TS2307: Cannot find module './styles/index.css' or its corresponding type declarations.
+3 import './styles/index.css'
+         ~~~~~~~~~~~~~~~~~~
+
+
 
 
 
