@@ -4,7 +4,7 @@ import { BarChart3 } from 'lucide-react';
 export function Footer() {
   return (
     <footer className="border-t border-border bg-card">
-      <div className="mx-auto max-w-7xl px-6 py-12 lg:px-8">
+      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
           {/* Brand */}
           <div className="col-span-1 md:col-span-2">
@@ -46,16 +46,6 @@ export function Footer() {
                   className="text-sm text-muted-foreground transition-colors hover:text-foreground"
                 >
                   Contact
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://github.com/aditya05005"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  GitHub: aditya05005
                 </a>
               </li>
             </ul>

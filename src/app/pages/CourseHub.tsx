@@ -43,6 +43,12 @@ function getStatusColor(status: Course['status']) {
   return 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20';
 }
 
+function dismissKeyboard() {
+  if (document.activeElement instanceof HTMLElement) {
+    document.activeElement.blur();
+  }
+}
+
 function formatLocalDateKey(date: Date): string {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -159,6 +165,7 @@ function CourseDetail({ course, onBack }: { course: Course; onBack: () => void }
   }, [running]);
 
   const handleStop = async () => {
+    dismissKeyboard();
     setRunning(false);
     if (secs > 0) {
       const session: StudySession = {
@@ -182,6 +189,7 @@ function CourseDetail({ course, onBack }: { course: Course; onBack: () => void }
   const [attendError, setAttendError] = useState('');
 
   const handleAttend = async (status: 'attended' | 'missed') => {
+    dismissKeyboard();
     const record: AttendanceRecord = {
       id: crypto.randomUUID(),
       date: new Date().toISOString(),
@@ -225,6 +233,7 @@ function CourseDetail({ course, onBack }: { course: Course; onBack: () => void }
   }, [live.progress]);
 
   const handleAddResource = async () => {
+    dismissKeyboard();
     if (!newLink.label || !newLink.url) return;
     const link: ResourceLink = {
       id: crypto.randomUUID(),
@@ -253,6 +262,7 @@ function CourseDetail({ course, onBack }: { course: Course; onBack: () => void }
   };
 
   const handleSaveProgress = async () => {
+    dismissKeyboard();
     setProgressSaving(true);
     setProgressSaved(false);
     setProgressError('');
@@ -267,6 +277,7 @@ function CourseDetail({ course, onBack }: { course: Course; onBack: () => void }
   };
 
   const handleDeleteCourse = async () => {
+    dismissKeyboard();
     setDeleteSaving(true);
     setDeleteError('');
     try {
@@ -280,8 +291,8 @@ function CourseDetail({ course, onBack }: { course: Course; onBack: () => void }
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-3xl px-6 py-12 lg:px-8">
-        <button onClick={onBack} className="mb-8 flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground">
+      <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:px-8">
+        <button type="button" onClick={onBack} className="mb-8 flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground">
           <ArrowLeft className="h-4 w-4" />Back to Course Hub
         </button>
 
@@ -328,6 +339,7 @@ function CourseDetail({ course, onBack }: { course: Course; onBack: () => void }
           />
           <div className="mt-4 flex items-center gap-3">
             <button
+              type="button"
               onClick={handleSaveProgress}
               disabled={progressSaving || progressDraft === live.progress}
               className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
@@ -335,6 +347,7 @@ function CourseDetail({ course, onBack }: { course: Course; onBack: () => void }
               {progressSaving ? 'Saving...' : 'Save Progress'}
             </button>
             <button
+              type="button"
               onClick={() => {
                 setProgressDraft(live.progress);
                 setProgressSaved(false);
@@ -359,18 +372,18 @@ function CourseDetail({ course, onBack }: { course: Course; onBack: () => void }
             </div>
             <div className="flex items-center gap-3">
               {!running ? (
-                <button onClick={() => { setSaved(false); setTimerError(''); setRunning(true); }}
+                <button type="button" onClick={() => { setSaved(false); setTimerError(''); setRunning(true); }}
                   className="flex items-center gap-2 rounded-lg bg-accent px-6 py-2.5 text-sm font-medium text-accent-foreground transition-all hover:opacity-90 hover:shadow-lg">
                   <Play className="h-4 w-4" />{secs > 0 ? 'Resume' : 'Start'}
                 </button>
               ) : (
-                <button onClick={handleStop}
+                <button type="button" onClick={handleStop}
                   className="flex items-center gap-2 rounded-lg border border-rose-500/20 bg-rose-500/10 px-6 py-2.5 text-sm font-medium text-rose-600 transition-all hover:bg-rose-500/20 dark:text-rose-400">
                   <Square className="h-4 w-4" />Stop
                 </button>
               )}
               {secs > 0 && !running && (
-                <button onClick={() => { setSecs(0); setSaved(false); setTimerError(''); }}
+                <button type="button" onClick={() => { setSecs(0); setSaved(false); setTimerError(''); }}
                   className="rounded-lg border border-border px-4 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted">
                   Reset
                 </button>
@@ -408,12 +421,12 @@ function CourseDetail({ course, onBack }: { course: Course; onBack: () => void }
           <input type="text" value={attendNote} onChange={(e) => setAttendNote(e.target.value)}
             placeholder="Optional note (e.g. 'Topic: Sorting Algorithms')"
             className="mb-3 w-full rounded-lg border border-border bg-muted/30 px-4 py-2 text-sm focus:border-accent focus:outline-none" />
-          <div className="grid grid-cols-2 gap-3">
-            <button onClick={() => handleAttend('attended')} disabled={attendSaving}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <button type="button" onClick={() => handleAttend('attended')} disabled={attendSaving}
               className="flex items-center justify-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 py-2.5 text-sm font-medium text-emerald-600 transition-all hover:bg-emerald-500/20 disabled:opacity-50 dark:text-emerald-400">
               {attendSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserCheck className="h-4 w-4" />}Attended
             </button>
-            <button onClick={() => handleAttend('missed')} disabled={attendSaving}
+            <button type="button" onClick={() => handleAttend('missed')} disabled={attendSaving}
               className="flex items-center justify-center gap-2 rounded-lg border border-rose-500/30 bg-rose-500/10 py-2.5 text-sm font-medium text-rose-600 transition-all hover:bg-rose-500/20 disabled:opacity-50 dark:text-rose-400">
               {attendSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserX className="h-4 w-4" />}Missed
             </button>
@@ -447,7 +460,7 @@ function CourseDetail({ course, onBack }: { course: Course; onBack: () => void }
               <LinkIcon className="h-4 w-4 text-accent" />
               <h2 className="font-semibold">Resources</h2>
             </div>
-            <button onClick={() => setShowAddLink((p) => !p)}
+            <button type="button" onClick={() => setShowAddLink((p) => !p)}
               className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium transition-colors hover:bg-muted">
               <Plus className="h-3.5 w-3.5" />Add link
             </button>
@@ -465,11 +478,11 @@ function CourseDetail({ course, onBack }: { course: Course; onBack: () => void }
               </div>
               {linkError && <p className="mb-2 text-xs text-rose-600 dark:text-rose-400">{linkError}</p>}
               <div className="flex gap-2">
-                <button onClick={handleAddResource} disabled={linkSaving}
+                <button type="button" onClick={handleAddResource} disabled={linkSaving}
                   className="flex items-center gap-1.5 rounded-lg bg-accent px-4 py-1.5 text-xs font-medium text-accent-foreground transition-all hover:opacity-90 disabled:opacity-50">
                   {linkSaving && <Loader2 className="h-3 w-3 animate-spin" />}Save
                 </button>
-                <button onClick={() => { setShowAddLink(false); setNewLink({ label: '', url: '' }); setLinkError(''); }}
+                <button type="button" onClick={() => { setShowAddLink(false); setNewLink({ label: '', url: '' }); setLinkError(''); }}
                   className="rounded-lg border border-border px-4 py-1.5 text-xs font-medium transition-colors hover:bg-muted">Cancel</button>
               </div>
             </div>
@@ -486,7 +499,7 @@ function CourseDetail({ course, onBack }: { course: Course; onBack: () => void }
                     <span className="font-medium">{link.label}</span>
                     <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
                   </a>
-                  <button onClick={() => handleRemoveResource(link.id)}
+                  <button type="button" onClick={() => handleRemoveResource(link.id)}
                     className="ml-3 rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-rose-500">
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
@@ -503,6 +516,7 @@ function CourseDetail({ course, onBack }: { course: Course; onBack: () => void }
           </p>
           {!deleteConfirm ? (
             <button
+              type="button"
               onClick={() => {
                 setDeleteConfirm(true);
                 setDeleteError('');
@@ -518,6 +532,7 @@ function CourseDetail({ course, onBack }: { course: Course; onBack: () => void }
               </p>
               <div className="flex items-center gap-3">
                 <button
+                  type="button"
                   onClick={handleDeleteCourse}
                   disabled={deleteSaving}
                   className="flex items-center gap-2 rounded-lg bg-rose-600 px-4 py-2.5 text-sm font-medium text-white transition-all hover:opacity-90 disabled:opacity-50"
@@ -526,6 +541,7 @@ function CourseDetail({ course, onBack }: { course: Course; onBack: () => void }
                   Confirm Delete
                 </button>
                 <button
+                  type="button"
                   onClick={() => {
                     setDeleteConfirm(false);
                     setDeleteError('');
@@ -563,6 +579,7 @@ function AddReminderModal({ courses, onAdd, onClose }: AddReminderModalProps) {
   const [error, setError] = useState('');
 
   const handle = async () => {
+    dismissKeyboard();
     if (!desc || !date || !time) { setError('Description, date, and time are required.'); return; }
     const dueISO = new Date(date + 'T' + time).toISOString();
     const found = courses.find((c) => c.id === courseId);
@@ -588,11 +605,12 @@ function AddReminderModal({ courses, onAdd, onClose }: AddReminderModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[60] overflow-y-auto bg-background/80 p-4 backdrop-blur-sm">
+      <div className="flex min-h-full items-center justify-center py-6">
       <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl">
         <div className="mb-6 flex items-center justify-between">
           <h2 className="text-xl font-semibold">Add Reminder</h2>
-          <button onClick={onClose} className="rounded-lg p-1 transition-colors hover:bg-muted"><X className="h-5 w-5" /></button>
+          <button type="button" onClick={onClose} className="rounded-lg p-1 transition-colors hover:bg-muted"><X className="h-5 w-5" /></button>
         </div>
         <div className="space-y-4">
           <div>
@@ -634,13 +652,14 @@ function AddReminderModal({ courses, onAdd, onClose }: AddReminderModalProps) {
           {error && <p className="text-sm text-rose-600 dark:text-rose-400">{error}</p>}
         </div>
         <div className="mt-6 flex gap-3">
-          <button onClick={onClose} disabled={saving}
+          <button type="button" onClick={onClose} disabled={saving}
             className="flex-1 rounded-lg border border-border bg-muted/30 px-4 py-2.5 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-50">Cancel</button>
-          <button onClick={handle} disabled={saving}
+          <button type="button" onClick={handle} disabled={saving}
             className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-accent-foreground transition-all hover:opacity-90 disabled:opacity-50">
             {saving && <Loader2 className="h-4 w-4 animate-spin" />}Add Reminder
           </button>
         </div>
+      </div>
       </div>
     </div>
   );
@@ -667,6 +686,7 @@ function AddCourseModal({ onAdd, onClose }: AddCourseModalProps) {
     setLinks(links.map((l, j) => j === i ? { ...l, [f]: v } : l));
 
   const handle = async () => {
+    dismissKeyboard();
     if (!name.trim()) { setError('Course name is required.'); return; }
     const course: Course = {
       id: crypto.randomUUID(),
@@ -693,11 +713,12 @@ function AddCourseModal({ onAdd, onClose }: AddCourseModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[60] overflow-y-auto bg-background/80 p-4 backdrop-blur-sm">
+      <div className="flex min-h-full items-center justify-center py-6">
       <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
         <div className="mb-6 flex items-center justify-between">
           <h2 className="text-xl font-semibold">Add New Course</h2>
-          <button onClick={onClose} className="rounded-lg p-1 transition-colors hover:bg-muted"><X className="h-5 w-5" /></button>
+          <button type="button" onClick={onClose} className="rounded-lg p-1 transition-colors hover:bg-muted"><X className="h-5 w-5" /></button>
         </div>
         <div className="space-y-4">
           <div>
@@ -718,7 +739,7 @@ function AddCourseModal({ onAdd, onClose }: AddCourseModalProps) {
                     className="flex-1 rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm focus:border-accent focus:outline-none"
                     placeholder="https://..." />
                   {links.length > 1 && (
-                    <button onClick={() => removeLink(i)}
+                    <button type="button" onClick={() => removeLink(i)}
                       className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-rose-500">
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -726,7 +747,7 @@ function AddCourseModal({ onAdd, onClose }: AddCourseModalProps) {
                 </div>
               ))}
             </div>
-            <button onClick={addLink}
+            <button type="button" onClick={addLink}
               className="mt-2 flex items-center gap-1.5 text-xs text-accent transition-opacity hover:opacity-80">
               <Plus className="h-3.5 w-3.5" />Add another link
             </button>
@@ -748,13 +769,14 @@ function AddCourseModal({ onAdd, onClose }: AddCourseModalProps) {
           {error && <p className="text-sm text-rose-600 dark:text-rose-400">{error}</p>}
         </div>
         <div className="mt-6 flex gap-3">
-          <button onClick={onClose} disabled={saving}
+          <button type="button" onClick={onClose} disabled={saving}
             className="flex-1 rounded-lg border border-border bg-muted/30 px-4 py-2.5 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-50">Cancel</button>
-          <button onClick={handle} disabled={saving}
+          <button type="button" onClick={handle} disabled={saving}
             className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-accent-foreground transition-all hover:opacity-90 disabled:opacity-50">
             {saving && <Loader2 className="h-4 w-4 animate-spin" />}Add Course
           </button>
         </div>
+      </div>
       </div>
     </div>
   );
@@ -783,14 +805,14 @@ export function CourseHub() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-7xl px-6 py-12 lg:px-8">
+      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-8 flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-3xl font-semibold tracking-tight">Course Hub</h1>
             <p className="mt-2 text-sm text-muted-foreground">Manage your courses and track your learning progress</p>
           </div>
-          <button onClick={() => setShowAddCourse(true)}
+          <button type="button" onClick={() => setShowAddCourse(true)}
             className="flex items-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-accent-foreground transition-all hover:opacity-90 hover:shadow-lg">
             <Plus className="h-4 w-4" />Add Course
           </button>
@@ -823,7 +845,7 @@ export function CourseHub() {
               {courses.length === 0 ? (
                 <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-16 text-center">
                   <p className="text-muted-foreground">No courses yet.</p>
-                  <button onClick={() => setShowAddCourse(true)}
+                  <button type="button" onClick={() => setShowAddCourse(true)}
                     className="mt-4 flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:opacity-90">
                     <Plus className="h-4 w-4" />Add your first course
                   </button>
@@ -879,7 +901,7 @@ export function CourseHub() {
                     <AlertCircle className="h-4 w-4 text-accent" />
                     <h3 className="font-semibold">Smart Reminders</h3>
                   </div>
-                  <button onClick={() => setShowAddReminder(true)}
+                  <button type="button" onClick={() => setShowAddReminder(true)}
                     className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-muted">
                     <Bell className="h-3.5 w-3.5" />Add
                   </button>
@@ -916,7 +938,8 @@ export function CourseHub() {
               <Calendar className="h-4 w-4 text-accent" />
               <h3 className="font-semibold">Weekly Timeline</h3>
             </div>
-            <div className="grid grid-cols-7 gap-3">
+            <div className="overflow-x-auto pb-2">
+              <div className="grid min-w-[720px] grid-cols-7 gap-3">
               {weeklyTimeline.map((day) => (
                 <div key={day.day} className="rounded-lg border border-border bg-muted/20 p-3 transition-all hover:border-accent/50">
                   <div className="mb-2 text-center">
@@ -933,6 +956,7 @@ export function CourseHub() {
                   </div>
                 </div>
               ))}
+              </div>
             </div>
           </div>
         )}

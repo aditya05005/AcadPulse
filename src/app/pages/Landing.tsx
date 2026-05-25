@@ -22,7 +22,7 @@ export function Landing() {
     <div className="min-h-screen">
       {/* Hero Section */}
       <section className="relative overflow-hidden border-b border-border">
-        <div className="mx-auto max-w-7xl px-6 py-24 lg:px-8 lg:py-32">
+        <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-24 lg:px-8 lg:py-32">
           <div className="grid grid-cols-1 gap-12 lg:grid-cols-2 lg:gap-16">
             {/* Left: Content */}
             <div className="flex flex-col justify-center">
@@ -112,7 +112,7 @@ export function Landing() {
 
       {/* Course Hub Section */}
       <section className="border-b border-border bg-gradient-to-b from-background to-card">
-        <div className="mx-auto max-w-7xl px-6 py-24 lg:px-8">
+        <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-24 lg:px-8">
           <div className="mb-12 text-center">
             <div className="inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/5 px-4 py-1.5 text-sm text-accent mb-4">
               <BookOpen className="h-3.5 w-3.5" />
@@ -170,7 +170,7 @@ export function Landing() {
 
       {/* Features Section */}
       <section id="about" className="border-b border-border bg-card">
-        <div className="mx-auto max-w-7xl px-6 py-24 lg:px-8">
+        <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-24 lg:px-8">
           <div className="text-center">
             <h2 className="text-3xl font-semibold tracking-tight lg:text-4xl">Everything you need to succeed</h2>
             <p className="mt-4 text-lg text-muted-foreground">Powerful features to help you stay on top of your academic performance</p>
@@ -209,7 +209,7 @@ export function Landing() {
 
       {/* Testimonials */}
       <section className="border-b border-border">
-        <div className="mx-auto max-w-7xl px-6 py-24 lg:px-8">
+        <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-24 lg:px-8">
           <div className="text-center">
             <h2 className="text-3xl font-semibold tracking-tight lg:text-4xl">Trusted by students</h2>
           </div>
@@ -236,7 +236,7 @@ export function Landing() {
 
       {/* CTA */}
       <section className="bg-card">
-        <div className="mx-auto max-w-7xl px-6 py-24 lg:px-8">
+        <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-24 lg:px-8">
           <div className="rounded-3xl border border-border bg-background p-12 text-center">
             <h2 className="text-3xl font-semibold tracking-tight lg:text-4xl">Ready to take control of your semester?</h2>
             <p className="mt-4 text-lg text-muted-foreground">Start tracking and stay ahead with AcadPulse</p>
