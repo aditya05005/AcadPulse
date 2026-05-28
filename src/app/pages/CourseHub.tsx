@@ -4,6 +4,7 @@ import {
   ArrowLeft, Play, Square, Link as LinkIcon, Trash2, X,
   UserCheck, UserX, Bell, Loader2,
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import { useCourses } from '../context/CourseContext';
 import type { Course, ResourceLink, AttendanceRecord, StudySession, Reminder } from '../../lib/types';
 
@@ -38,9 +39,9 @@ function ensureProtocol(url: string): string {
 }
 
 function getStatusColor(status: Course['status']) {
-  if (status === 'On Track') return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20';
-  if (status === 'Behind') return 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20';
-  return 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20';
+  if (status === 'Active') return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20';
+  if (status === 'Steady') return 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20';
+  return 'bg-slate-500/10 text-slate-600 dark:text-slate-300 border-slate-500/20';
 }
 
 function dismissKeyboard() {
@@ -565,16 +566,20 @@ function CourseDetail({ course, onBack }: { course: Course; onBack: () => void }
 
 interface AddReminderModalProps {
   courses: Course[];
-  onAdd: (r: Reminder) => Promise<void>;
+  reminder?: Reminder;
+  onSave: (r: Reminder) => Promise<void>;
+  onDone: (id: string) => Promise<void>;
   onClose: () => void;
 }
 
-function AddReminderModal({ courses, onAdd, onClose }: AddReminderModalProps) {
-  const [desc, setDesc] = useState('');
-  const [type, setType] = useState<Reminder['type']>('custom');
-  const [courseId, setCourseId] = useState(courses[0]?.id ?? '');
-  const [date, setDate] = useState('');
-  const [time, setTime] = useState('');
+function AddReminderModal({ courses, reminder: initialReminder, onSave, onDone, onClose }: AddReminderModalProps) {
+  const initialDate = initialReminder ? new Date(initialReminder.dueDate).toLocaleDateString('en-CA') : '';
+  const initialTime = initialReminder ? new Date(initialReminder.dueDate).toTimeString().slice(0, 5) : '';
+  const [desc, setDesc] = useState(initialReminder?.description ?? '');
+  const [type, setType] = useState<Reminder['type']>(initialReminder?.type ?? 'custom');
+  const [courseId, setCourseId] = useState(initialReminder?.courseId ?? courses[0]?.id ?? '');
+  const [date, setDate] = useState(initialDate);
+  const [time, setTime] = useState(initialTime);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -583,8 +588,8 @@ function AddReminderModal({ courses, onAdd, onClose }: AddReminderModalProps) {
     if (!desc || !date || !time) { setError('Description, date, and time are required.'); return; }
     const dueISO = new Date(date + 'T' + time).toISOString();
     const found = courses.find((c) => c.id === courseId);
-    const reminder: Reminder = {
-      id: crypto.randomUUID(),
+    const nextReminder: Reminder = {
+      id: initialReminder?.id ?? crypto.randomUUID(),
       type,
       courseId: courseId || undefined,
       courseName: found?.name,
@@ -596,10 +601,24 @@ function AddReminderModal({ courses, onAdd, onClose }: AddReminderModalProps) {
     setSaving(true);
     setError('');
     try {
-      await onAdd(reminder);
+      await onSave(nextReminder);
       onClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to save reminder.');
+      setSaving(false);
+    }
+  };
+
+  const handleDone = async () => {
+    if (!initialReminder) return;
+    dismissKeyboard();
+    setSaving(true);
+    setError('');
+    try {
+      await onDone(initialReminder.id);
+      onClose();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to mark reminder as done.');
       setSaving(false);
     }
   };
@@ -609,7 +628,7 @@ function AddReminderModal({ courses, onAdd, onClose }: AddReminderModalProps) {
       <div className="flex min-h-full items-center justify-center py-6">
       <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl">
         <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-xl font-semibold">Add Reminder</h2>
+          <h2 className="text-xl font-semibold">{initialReminder ? 'Edit Reminder' : 'Add Reminder'}</h2>
           <button type="button" onClick={onClose} className="rounded-lg p-1 transition-colors hover:bg-muted"><X className="h-5 w-5" /></button>
         </div>
         <div className="space-y-4">
@@ -644,8 +663,8 @@ function AddReminderModal({ courses, onAdd, onClose }: AddReminderModalProps) {
                 className="w-full rounded-lg border border-border bg-muted/30 px-4 py-2 text-sm focus:border-accent focus:outline-none" />
             </div>
             <div>
-              <label className="mb-2 block text-sm font-medium">Time (24-hour HH:MM)</label>
-              <input type="time" value={time} onChange={(e) => setTime(e.target.value)}
+              <label className="mb-2 block text-sm font-medium">Time (HH:MM, 24-hour)</label>
+              <input type="time" value={time} onChange={(e) => setTime(e.target.value)} required
                 className="w-full rounded-lg border border-border bg-muted/30 px-4 py-2 text-sm focus:border-accent focus:outline-none" />
             </div>
           </div>
@@ -656,9 +675,19 @@ function AddReminderModal({ courses, onAdd, onClose }: AddReminderModalProps) {
             className="flex-1 rounded-lg border border-border bg-muted/30 px-4 py-2.5 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-50">Cancel</button>
           <button type="button" onClick={handle} disabled={saving}
             className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-accent-foreground transition-all hover:opacity-90 disabled:opacity-50">
-            {saving && <Loader2 className="h-4 w-4 animate-spin" />}Add Reminder
+            {saving && <Loader2 className="h-4 w-4 animate-spin" />}{initialReminder ? 'Save Changes' : 'Add Reminder'}
           </button>
         </div>
+        {initialReminder && (
+          <button
+            type="button"
+            onClick={handleDone}
+            disabled={saving}
+            className="mt-3 w-full rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5 text-sm font-medium text-emerald-600 transition-colors hover:bg-emerald-500/20 disabled:opacity-50 dark:text-emerald-400"
+          >
+            Mark as Done
+          </button>
+        )}
       </div>
       </div>
     </div>
@@ -688,12 +717,12 @@ function AddCourseModal({ onAdd, onClose }: AddCourseModalProps) {
   const handle = async () => {
     dismissKeyboard();
     if (!name.trim()) { setError('Course name is required.'); return; }
-    const course: Course = {
+  const course: Course = {
       id: crypto.randomUUID(),
       name: name.trim(),
       progress,
       deadline: deadline || 'No deadline set',
-      status: 'On Track',
+      status: 'Active',
       links: links.filter((l) => l.label && l.url).map((l) => ({
         id: crypto.randomUUID(), label: l.label, url: ensureProtocol(l.url),
       })),
@@ -785,11 +814,19 @@ function AddCourseModal({ onAdd, onClose }: AddCourseModalProps) {
 // ─── Main CourseHub ────────────────────────────────────────────────────────────
 
 export function CourseHub() {
-  const { courses, reminders, loading, addCourse, addReminder } = useCourses();
+  const { user } = useAuth();
+  const { courses, reminders, loading, addCourse, addReminder, removeReminder } = useCourses();
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [showAddCourse, setShowAddCourse] = useState(false);
   const [showAddReminder, setShowAddReminder] = useState(false);
+  const [editingReminder, setEditingReminder] = useState<Reminder | undefined>(undefined);
   const weeklyTimeline = buildWeeklyTimeline(courses, reminders);
+
+  const requireSignIn = () => {
+    if (user) return true;
+    window.alert(`Please sign in first to add courses or reminders.\nGo to ${window.location.origin}/signin`);
+    return false;
+  };
 
   // Keep selectedCourse in sync with context updates
   useEffect(() => {
@@ -812,7 +849,10 @@ export function CourseHub() {
             <h1 className="text-3xl font-semibold tracking-tight">Course Hub</h1>
             <p className="mt-2 text-sm text-muted-foreground">Manage your courses and track your learning progress</p>
           </div>
-          <button type="button" onClick={() => setShowAddCourse(true)}
+          <button type="button" onClick={() => {
+            if (!requireSignIn()) return;
+            setShowAddCourse(true);
+          }}
             className="flex items-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-accent-foreground transition-all hover:opacity-90 hover:shadow-lg">
             <Plus className="h-4 w-4" />Add Course
           </button>
@@ -822,7 +862,7 @@ export function CourseHub() {
         <div className="mb-8 rounded-xl border border-border bg-card/50 p-4">
           <div className="flex gap-3">
             <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-accent" />
-            <div className="text-sm text-muted-foreground">
+            <div className="text-base font-medium leading-relaxed text-foreground sm:text-lg">
               "Small progress, repeated consistently, compounds into mastery."
             </div>
           </div>
@@ -901,7 +941,11 @@ export function CourseHub() {
                     <AlertCircle className="h-4 w-4 text-accent" />
                     <h3 className="font-semibold">Smart Reminders</h3>
                   </div>
-                  <button type="button" onClick={() => setShowAddReminder(true)}
+                  <button type="button" onClick={() => {
+                    if (!requireSignIn()) return;
+                    setEditingReminder(undefined);
+                    setShowAddReminder(true);
+                  }}
                     className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-muted">
                     <Bell className="h-3.5 w-3.5" />Add
                   </button>
@@ -911,7 +955,15 @@ export function CourseHub() {
                   {reminders.map((r) => {
                     const isMissed = r.missed || new Date(r.dueDate) < new Date();
                     return (
-                      <div key={r.id} className={'rounded-lg border p-3 ' + (isMissed ? 'border-rose-500/20 bg-rose-500/5' : 'border-border bg-muted/30')}>
+                      <button
+                        key={r.id}
+                        type="button"
+                        onClick={() => {
+                          setEditingReminder(r);
+                          setShowAddReminder(true);
+                        }}
+                        className={'w-full rounded-lg border p-3 text-left transition-colors hover:border-accent/40 ' + (isMissed ? 'border-rose-500/20 bg-rose-500/5' : 'border-border bg-muted/30')}
+                      >
                         <div className="mb-1 flex items-start justify-between gap-2">
                           <div className="flex-1 min-w-0">
                             <div className="text-sm font-medium text-foreground truncate">{r.description}</div>
@@ -922,7 +974,7 @@ export function CourseHub() {
                             : <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-muted-foreground" />}
                         </div>
                         <div className="mt-1.5 text-xs text-muted-foreground">{formatReminderDate(r.dueDate)}</div>
-                      </div>
+                      </button>
                     );
                   })}
                 </div>
@@ -966,7 +1018,18 @@ export function CourseHub() {
         <AddCourseModal onAdd={addCourse} onClose={() => setShowAddCourse(false)} />
       )}
       {showAddReminder && (
-        <AddReminderModal courses={courses} onAdd={addReminder} onClose={() => setShowAddReminder(false)} />
+        <AddReminderModal
+          courses={courses}
+          reminder={editingReminder}
+          onSave={addReminder}
+          onDone={async (id) => {
+            await removeReminder(id);
+          }}
+          onClose={() => {
+            setShowAddReminder(false);
+            setEditingReminder(undefined);
+          }}
+        />
       )}
     </div>
   );

@@ -1,7 +1,7 @@
 
-# Academic Health Scorecard
+# AcadPulse
 
-A student academic dashboard — course tracking, attendance, study timers, reminders, and a performance predictor.
+A student academic dashboard for course tracking, attendance, study timers, reminders, and progress insights.
 
 ## Tech Stack
 
@@ -64,7 +64,7 @@ create table courses (
   name text not null,
   progress int default 0,
   deadline text,
-  status text default 'On Track',
+  status text default 'Active',
   last_studied timestamptz,
   created_at timestamptz default now()
 );

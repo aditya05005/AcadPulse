@@ -26,7 +26,7 @@ export interface Course {
   name: string;
   progress: number;
   deadline: string;
-  status: 'On Track' | 'Behind' | 'Urgent';
+  status: 'Active' | 'Steady' | 'Cold';
   links: ResourceLink[];
   lastStudied?: string; // ISO date string
   attendance: AttendanceRecord[];
