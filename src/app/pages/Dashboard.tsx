@@ -155,7 +155,7 @@ export function Dashboard() {
             <div className="mb-8 rounded-2xl border border-border bg-card p-8 shadow-sm">
               <div className="flex items-start justify-between">
                 <div>
-                  <div className="text-sm text-muted-foreground">Academic Health Score</div>
+                  <div className="text-sm text-muted-foreground">AcadPulse Score</div>
                   <div className="mt-2 flex items-baseline gap-2">
                     <div className="text-6xl font-semibold text-accent">{stats.healthScore}</div>
                     <div className="text-2xl text-muted-foreground">/ 100</div>

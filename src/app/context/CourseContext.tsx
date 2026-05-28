@@ -180,7 +180,10 @@ export function CourseProvider({ children }: { children: ReactNode }) {
 
   const addReminder = async (reminder: Reminder) => {
     await upsertReminder(reminder);
-    setReminders((prev) => [...prev, reminder]);
+    setReminders((prev) => {
+      const exists = prev.some((r) => r.id === reminder.id);
+      return exists ? prev.map((r) => (r.id === reminder.id ? reminder : r)) : [...prev, reminder];
+    });
   };
 
   const removeReminder = async (id: string) => {

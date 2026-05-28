@@ -14,6 +14,7 @@
  */
 
 import { supabase } from './supabase';
+import { deriveCourseStatus } from './courseStatus';
 import type {
   Course, Reminder, User, ResourceLink, AttendanceRecord, StudySession,
 } from './types';
@@ -79,7 +80,7 @@ const sessionFromRow = (r: StudySessionRow): StudySession =>
 
 const courseFromRow  = (r: CourseRow): Course => ({
   id: r.id, name: r.name, progress: r.progress, deadline: r.deadline,
-  status: r.status as Course['status'],
+  status: deriveCourseStatus(r.last_studied ?? undefined, r.created_at),
   lastStudied: r.last_studied ?? undefined,
   createdAt: r.created_at,
   links:        (r.resource_links ?? []).map(linkFromRow),
@@ -126,7 +127,7 @@ const courseToRow = (
   userId: string, c: Course
 ): Omit<CourseRow, 'resource_links' | 'attendance' | 'study_sessions'> => ({
   id: c.id, user_id: userId, name: c.name, progress: c.progress,
-  deadline: c.deadline, status: c.status,
+  deadline: c.deadline, status: deriveCourseStatus(c.lastStudied, c.createdAt),
   last_studied: c.lastStudied ?? null,
   created_at: c.createdAt,
 });

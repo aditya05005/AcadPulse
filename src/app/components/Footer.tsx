@@ -20,7 +20,7 @@ export function Footer() {
               A focused academic dashboard for tracking courses, attendance, study time, and reminders.
             </p>
             <p className="mt-3 text-sm text-muted-foreground">
-              Built and maintained by <span className="font-medium text-foreground">Aditya</span>.
+              Built and maintained by <span className="font-medium text-foreground">Aditya and Ayush</span>.
             </p>
           </div>
 

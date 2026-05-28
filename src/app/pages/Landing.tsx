@@ -6,9 +6,9 @@ export function Landing() {
   const { courses } = useCourses();
 
   const getStatusColor = (status: string) => {
-    if (status === 'On Track') return 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400';
-    if (status === 'Behind') return 'border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400';
-    return 'border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400';
+    if (status === 'Active') return 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400';
+    if (status === 'Steady') return 'border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400';
+    return 'border-slate-500/30 bg-slate-500/10 text-slate-600 dark:text-slate-300';
   };
 
   const cardColors = [
@@ -65,9 +65,9 @@ export function Landing() {
                 </div>
                 <div>
                   <div className="text-2xl font-semibold">
-                    {courses.filter((c) => c.status === 'On Track').length}
+                    {courses.filter((c) => c.status === 'Active').length}
                   </div>
-                  <div className="text-sm text-muted-foreground">On track</div>
+                  <div className="text-sm text-muted-foreground">Active</div>
                 </div>
               </div>
             </div>
@@ -91,9 +91,9 @@ export function Landing() {
                     <span className="text-sm font-medium">{courses.length} active</span>
                   </div>
                   <div className="flex items-center justify-between rounded-lg border border-border bg-muted/50 p-3">
-                    <span className="text-sm">Urgent</span>
-                    <span className="text-sm font-medium text-rose-500">
-                      {courses.filter((c) => c.status === 'Urgent').length} course{courses.filter((c) => c.status === 'Urgent').length !== 1 ? 's' : ''}
+                    <span className="text-sm">Cold</span>
+                    <span className="text-sm font-medium text-slate-500">
+                      {courses.filter((c) => c.status === 'Cold').length} course{courses.filter((c) => c.status === 'Cold').length !== 1 ? 's' : ''}
                     </span>
                   </div>
                   <div className="flex items-center justify-between rounded-lg border border-border bg-muted/50 p-3">
