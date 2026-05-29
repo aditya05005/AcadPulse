@@ -15,8 +15,9 @@
 
 import { supabase } from './supabase';
 import { deriveCourseStatus } from './courseStatus';
+import { calculateCourseProgress } from './courseProgress';
 import type {
-  Course, Reminder, User, ResourceLink, AttendanceRecord, StudySession,
+  Course, Reminder, User, ResourceLink, AttendanceRecord, StudySession, CourseTopic,
 } from './types';
 
 // ── Utilities ─────────────────────────────────────────────────────────────────
@@ -50,6 +51,9 @@ interface StudySessionRow {
   id: string; course_id: string; user_id: string;
   date: string; duration_seconds: number;
 }
+interface CourseTopicRow {
+  id: string; course_id: string; title: string; is_completed: boolean; created_at: string;
+}
 interface CourseRow {
   id: string; user_id: string; name: string; progress: number;
   deadline: string; status: string; last_studied: string | null;
@@ -57,6 +61,7 @@ interface CourseRow {
   resource_links?: ResourceLinkRow[];
   attendance?: AttendanceRow[];
   study_sessions?: StudySessionRow[];
+  course_topics?: CourseTopicRow[];
 }
 interface ReminderRow {
   id: string; user_id: string; course_id: string | null;
@@ -78,15 +83,25 @@ const attendanceFromRow = (r: AttendanceRow): AttendanceRecord =>
 const sessionFromRow = (r: StudySessionRow): StudySession =>
   ({ id: r.id, date: r.date, durationSeconds: r.duration_seconds });
 
-const courseFromRow  = (r: CourseRow): Course => ({
-  id: r.id, name: r.name, progress: r.progress, deadline: r.deadline,
-  status: deriveCourseStatus(r.last_studied ?? undefined, r.created_at),
-  lastStudied: r.last_studied ?? undefined,
-  createdAt: r.created_at,
-  links:        (r.resource_links ?? []).map(linkFromRow),
-  attendance:   (r.attendance     ?? []).map(attendanceFromRow),
-  studySessions:(r.study_sessions ?? []).map(sessionFromRow),
-});
+const topicFromRow = (r: CourseTopicRow): CourseTopic =>
+  ({ id: r.id, courseId: r.course_id, title: r.title, isCompleted: r.is_completed, createdAt: r.created_at });
+
+const courseFromRow  = (r: CourseRow): Course => {
+  const topics = (r.course_topics ?? []).map(topicFromRow).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  return {
+    id: r.id,
+    name: r.name,
+    progress: calculateCourseProgress(topics),
+    deadline: r.deadline,
+    status: deriveCourseStatus(r.last_studied ?? undefined, r.created_at),
+    lastStudied: r.last_studied ?? undefined,
+    createdAt: r.created_at,
+    links: (r.resource_links ?? []).map(linkFromRow),
+    topics,
+    attendance: (r.attendance ?? []).map(attendanceFromRow),
+    studySessions: (r.study_sessions ?? []).map(sessionFromRow),
+  };
+};
 
 const reminderFromRow = (r: ReminderRow): Reminder => ({
   id: r.id,
@@ -122,6 +137,9 @@ const sessionToRow = (
   id: s.id, course_id: courseId, user_id: userId,
   date: s.date, duration_seconds: s.durationSeconds,
 });
+
+const topicToRow = (courseId: string, topic: CourseTopic): CourseTopicRow =>
+  ({ id: topic.id, course_id: courseId, title: topic.title, is_completed: topic.isCompleted, created_at: topic.createdAt });
 
 const courseToRow = (
   userId: string, c: Course
@@ -225,7 +243,7 @@ export async function updatePassword(password: string): Promise<void> {
 export async function getCourses(): Promise<Course[]> {
   const { data, error } = await supabase
     .from('courses')
-    .select('*, resource_links(*), attendance(*), study_sessions(*)')
+    .select('*, resource_links(*), attendance(*), study_sessions(*), course_topics(*)')
     .order('created_at', { ascending: true });
   assert(error, 'getCourses');
   return (data as CourseRow[]).map(courseFromRow);
@@ -235,6 +253,11 @@ export async function upsertCourse(course: Course): Promise<void> {
   const userId = await uid();
   const { error } = await supabase.from('courses').upsert(courseToRow(userId, course));
   assert(error, 'upsertCourse');
+}
+
+export async function updateCourseProgress(courseId: string, progress: number): Promise<void> {
+  const { error } = await supabase.from('courses').update({ progress }).eq('id', courseId);
+  assert(error, 'updateCourseProgress');
 }
 
 export async function deleteCourse(id: string): Promise<void> {
@@ -253,6 +276,26 @@ export async function insertResource(courseId: string, link: ResourceLink): Prom
 export async function deleteResource(linkId: string): Promise<void> {
   const { error } = await supabase.from('resource_links').delete().eq('id', linkId);
   assert(error, 'deleteResource');
+}
+
+// ─── Course topics ───────────────────────────────────────────────────────────
+
+export async function insertCourseTopic(courseId: string, topic: CourseTopic): Promise<void> {
+  const { error } = await supabase.from('course_topics').insert(topicToRow(courseId, topic));
+  assert(error, 'insertCourseTopic');
+}
+
+export async function updateCourseTopic(topic: CourseTopic): Promise<void> {
+  const { error } = await supabase
+    .from('course_topics')
+    .update({ title: topic.title, is_completed: topic.isCompleted })
+    .eq('id', topic.id);
+  assert(error, 'updateCourseTopic');
+}
+
+export async function deleteCourseTopic(topicId: string): Promise<void> {
+  const { error } = await supabase.from('course_topics').delete().eq('id', topicId);
+  assert(error, 'deleteCourseTopic');
 }
 
 // ─── Attendance ───────────────────────────────────────────────────────────────

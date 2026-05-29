@@ -1,10 +1,94 @@
+29/05/2026 15:54
+aditya@aditya-Aspire-E5-511:/media/aditya/HDD_PART2/USEME/acadpulse/academic-dashboard$ git push origin master
+Username for 'https://github.com': adita05005
+Password for 'https://adita05005@github.com': 
+Enumerating objects: 27, done.
+Counting objects: 100% (27/27), done.
+Delta compression using up to 4 threads
+Compressing objects: 100% (15/15), done.
+Writing objects: 100% (15/15), 8.45 KiB | 961.00 KiB/s, done.
+Total 15 (delta 8), reused 0 (delta 0), pack-reused 0
+remote: Resolving deltas: 100% (8/8), completed with 8 local objects.
+remote: error: GH013: Repository rule violations found for refs/heads/master.
+remote: 
+remote: - GITHUB PUSH PROTECTION
+remote:   —————————————————————————————————————————
+remote:     Resolve the following violations before pushing again
+remote: 
+remote:     - Push cannot contain secrets
+remote: 
+remote:     
+remote:      (?) Learn how to resolve a blocked push
+remote:      https://docs.github.com/code-security/secret-scanning/working-with-secret-scanning-and-push-protection/working-with-push-protection-from-the-command-line#resolving-a-blocked-push
+remote:     
+remote:     
+remote:       —— GCP API Key Bound to a Service Account ————————————
+remote:        locations:
+remote:          - commit: 1770d50cf1d1ae29af08b6f8a5a4bdcb1559206d
+remote:            path: changes:37
+remote:     
+remote:        (?) To push, remove secret from commit(s) or follow this URL to allow the secret.
+remote:        https://github.com/aditya05005/AcadPulse/security/secret-scanning/unblock-secret/3EO7XwrM5ychi1cdA1tpksF4cjW
+remote:     
+remote: 
+remote: 
+To https://github.com/aditya05005/AcadPulse.git
+ ! [remote rejected] master -> master (push declined due to repository rule violations)
+error: failed to push some refs to 'https://github.com/aditya05005/AcadPulse.git'
+I think we can set the API things using Supabase edge functions. If you want me to configure things in Supabase tell me
+
+28/05/2026 20:20
+-> In the CourseHub page, after clicking a course card, we have the topic section. Include a button to upload pdf/images of the syllabus. On clicking it gives an option to select a file for upload. The file should be sent to gemini ai using the api key I am providing. Gemini extracts topics from Pdf/image and returns them in JSON format. This json should be used to create topics automatically. if no topics come, or the respone is broken format, handle it gracefully by sending alert/prompt by saying'error occured parsing, please create topics manually'. The prompt along which the pdf is sent to gemini would be something like:
+Analyze this academic course syllabus PDF.
+
+Your task is to generate a study checklist for a student. 
+Do NOT extract the top-level main Module/Chapter titles (they are too broad).
+Do NOT extract individual tiny keywords or algorithms (they are too narrow).
+
+Instead, extract the mid-level operational sub-topics or conceptual units (usually numbered like 1.1, 1.2, 2.1, or listed as immediate sub-headings). Each item should represent roughly 1 to 2 lectures or a single solid study session.
+
+Clean up the text to look like clean, actionable study goals.
+Example translation based on expected layout:
+- Instead of "Module 2: Search and Game Playing"
+- Extract: "Uninformed Search Techniques", "Informed Search & Heuristics", "Adversarial Search & Game Playing"
+
+Respond strictly in this JSON format:
+{
+  "topics": [
+    "Introduction to AI & Intelligent Agents",
+    "Problem-Solving Frameworks",
+    "Uninformed Search Techniques",
+    "Informed Search & Heuristics",
+    "Adversarial Search & Game Playing",
+    "Propositional Logic & Inference",
+    "First-Order Logic & Rule-Based Systems",
+    "Probability Basics & Bayes' Theorem",
+    "Bayesian Networks & Managing Uncertainty",
+    "Introduction to Machine Learning Types",
+    "Supervised Learning (Regression & Classification)",
+    "Unsupervised Learning (Clustering & K-Means)",
+    "AI Applications & Future Trends",
+    "AI Ethics, Bias & Societal Impact"
+  ]
+}
+My GEMINI API key details: 
+google ai studio:
+api key: [kept in .env.local]
+project name: [redacted]
+project number: [redacted]
+keep the key secure in .env file and do not commit it 
+
+
+28/05/2026 16:28
+-> When we click a course card, a page pops up with timer, progress and resource links. Add a section named topics. Under topics provide a button to add the topic names with checkboxes and editable tags. The 'progress' field of a course is updated on the basis of topics checked and unchecked, denoting topics learnt and which are yet to be learned. This might require a child table called course_topics with columns like id, course_id, title, is_completed(boolean)
+-> Remove the feature to set the progress bar editable by user.(it will be updated on the basis of topics only, and if user has not added any topics for a course set progress to 0)
+
 28/05/2026 10:56
 -> In 'Smart Reminders' section the reminders are not editable, and clicking them should give option to edit the fields, and also to mark as done. 
 -> status text default 'On Track'. Change this based on the following rules:
     Studied within the last 3 days: Active
     Studied within the last 3 days: Steady
     No study sessions for over 10 days: Cold
-
 
 27/05/2026
 -On home page, change 'Built and maintained by Aditya' to 'Built and maintained by Aditya and Ayush'.
@@ -82,7 +166,6 @@ src/lib/supabase.ts:4:37 - error TS2339: Property 'env' does not exist on type '
 src/main.tsx:3:8 - error TS2307: Cannot find module './styles/index.css' or its corresponding type declarations.
 3 import './styles/index.css'
          ~~~~~~~~~~~~~~~~~~
-
 
 
 
