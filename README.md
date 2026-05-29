@@ -34,6 +34,7 @@ cp .env.example .env.local
 ```
 VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key
+VITE_GEMINI_API_KEY=your-gemini-api-key
 ```
 
 ### 3. Run
@@ -96,6 +97,15 @@ create table study_sessions (
   duration_seconds int not null
 );
 
+-- Course topics
+create table course_topics (
+  id text primary key,
+  course_id text references courses(id) on delete cascade not null,
+  title text not null,
+  is_completed boolean default false,
+  created_at timestamptz default now()
+);
+
 -- Reminders
 create table reminders (
   id text primary key,
@@ -113,6 +123,7 @@ alter table courses enable row level security;
 alter table resource_links enable row level security;
 alter table attendance enable row level security;
 alter table study_sessions enable row level security;
+alter table course_topics enable row level security;
 alter table reminders enable row level security;
 
 create policy "own courses" on courses for all using (auth.uid() = user_id);
@@ -121,6 +132,9 @@ create policy "own links" on resource_links for all using (
 );
 create policy "own attendance" on attendance for all using (auth.uid() = user_id);
 create policy "own sessions" on study_sessions for all using (auth.uid() = user_id);
+create policy "own topics" on course_topics for all using (
+  course_id in (select id from courses where user_id = auth.uid())
+);
 create policy "own reminders" on reminders for all using (auth.uid() = user_id);
 
 -- Auto-create profile on signup
@@ -156,13 +170,12 @@ src/
 │   │   ├── CourseContext.tsx
 │   │   └── ThemeContext.tsx
 │   ├── pages/
-│   │   ├── Landing.tsx
-│   │   ├── Dashboard.tsx
-│   │   ├── CourseHub.tsx
-│   │   ├── PredictionTool.tsx
-│   │   ├── Insights.tsx
-│   │   ├── SignIn.tsx
-│   │   └── NotFound.tsx
+   │   │   ├── Landing.tsx
+   │   │   ├── Dashboard.tsx
+   │   │   ├── CourseHub.tsx
+   │   │   ├── Insights.tsx
+   │   │   ├── SignIn.tsx
+   │   │   └── NotFound.tsx
 │   └── components/
 │       ├── Navbar.tsx
 │       ├── Footer.tsx

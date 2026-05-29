@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
-import type { Course, Reminder, ResourceLink, AttendanceRecord, StudySession } from '../../lib/types';
+import type { Course, Reminder, ResourceLink, AttendanceRecord, StudySession, CourseTopic } from '../../lib/types';
 import {
   getCourses, getReminders,
   upsertCourse, deleteCourse as dbDeleteCourse,
@@ -7,9 +7,12 @@ import {
   insertAttendance,
   insertStudySession, updateLastStudied as dbUpdateLastStudied,
   upsertReminder, deleteReminder as dbDeleteReminder,
+  insertCourseTopic, updateCourseTopic as dbUpdateCourseTopic,
+  deleteCourseTopic as dbDeleteCourseTopic, updateCourseProgress,
 } from '../../lib/db';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from './AuthContext';
+import { calculateCourseProgress } from '../../lib/courseProgress';
 
 interface CourseContextType {
   courses: Course[];
@@ -24,6 +27,10 @@ interface CourseContextType {
   markAttendance: (courseId: string, record: AttendanceRecord) => Promise<void>;
   addReminder: (reminder: Reminder) => Promise<void>;
   removeReminder: (id: string) => Promise<void>;
+  addTopic: (courseId: string, title: string) => Promise<void>;
+  addTopicsBulk: (courseId: string, titles: string[]) => Promise<void>;
+  updateTopic: (courseId: string, topic: CourseTopic) => Promise<void>;
+  removeTopic: (courseId: string, topicId: string) => Promise<void>;
   reload: () => Promise<void>;
 }
 
@@ -119,6 +126,12 @@ export function CourseProvider({ children }: { children: ReactNode }) {
     setCourses((prev) => prev.map((c) => (c.id === course.id ? course : c)));
   };
 
+  const syncCourseProgress = async (courseId: string, topics: CourseTopic[]) => {
+    const progress = calculateCourseProgress(topics);
+    await updateCourseProgress(courseId, progress);
+    return progress;
+  };
+
   const removeCourse = async (id: string) => {
     await dbDeleteCourse(id);
     setCourses((prev) => prev.filter((c) => c.id !== id));
@@ -191,6 +204,58 @@ export function CourseProvider({ children }: { children: ReactNode }) {
     setReminders((prev) => prev.filter((r) => r.id !== id));
   };
 
+  // ── Topics ────────────────────────────────────────────────────────────────
+
+  const addTopic = async (courseId: string, title: string) => {
+    const topic: CourseTopic = {
+      id: crypto.randomUUID(),
+      courseId,
+      title: title.trim(),
+      isCompleted: false,
+      createdAt: new Date().toISOString(),
+    };
+    await insertCourseTopic(courseId, topic);
+    const current = courses.find((course) => course.id === courseId);
+    const nextTopics = [...(current?.topics ?? []), topic];
+    const progress = await syncCourseProgress(courseId, nextTopics);
+    setCourses((prev) => prev.map((course) => (course.id === courseId ? { ...course, topics: nextTopics, progress } : course)));
+  };
+
+  const addTopicsBulk = async (courseId: string, titles: string[]) => {
+    const uniqueTitles = [...new Set(titles.map((title) => title.trim()).filter(Boolean))];
+    if (uniqueTitles.length === 0) return;
+
+    const newTopics: CourseTopic[] = uniqueTitles.map((title) => ({
+      id: crypto.randomUUID(),
+      courseId,
+      title,
+      isCompleted: false,
+      createdAt: new Date().toISOString(),
+    }));
+
+    await Promise.all(newTopics.map((topic) => insertCourseTopic(courseId, topic)));
+    const current = courses.find((course) => course.id === courseId);
+    const nextTopics = [...(current?.topics ?? []), ...newTopics];
+    const progress = await syncCourseProgress(courseId, nextTopics);
+    setCourses((prev) => prev.map((course) => (course.id === courseId ? { ...course, topics: nextTopics, progress } : course)));
+  };
+
+  const updateTopic = async (courseId: string, topic: CourseTopic) => {
+    await dbUpdateCourseTopic(topic);
+    const current = courses.find((course) => course.id === courseId);
+    const nextTopics = (current?.topics ?? []).map((item) => (item.id === topic.id ? topic : item));
+    const progress = await syncCourseProgress(courseId, nextTopics);
+    setCourses((prev) => prev.map((course) => (course.id === courseId ? { ...course, topics: nextTopics, progress } : course)));
+  };
+
+  const removeTopic = async (courseId: string, topicId: string) => {
+    await dbDeleteCourseTopic(topicId);
+    const current = courses.find((course) => course.id === courseId);
+    const nextTopics = (current?.topics ?? []).filter((topic) => topic.id !== topicId);
+    const progress = await syncCourseProgress(courseId, nextTopics);
+    setCourses((prev) => prev.map((course) => (course.id === courseId ? { ...course, topics: nextTopics, progress } : course)));
+  };
+
   return (
     <CourseContext.Provider value={{
       courses, reminders, loading,
@@ -198,6 +263,7 @@ export function CourseProvider({ children }: { children: ReactNode }) {
       addResource, removeResource,
       updateLastStudied, markAttendance,
       addReminder, removeReminder,
+      addTopic, addTopicsBulk, updateTopic, removeTopic,
       reload: () => loadData(true),
     }}>
       {children}

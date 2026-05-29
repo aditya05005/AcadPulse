@@ -21,6 +21,14 @@ export interface StudySession {
   durationSeconds: number;
 }
 
+export interface CourseTopic {
+  id: string;
+  courseId: string;
+  title: string;
+  isCompleted: boolean;
+  createdAt: string;
+}
+
 export interface Course {
   id: string;
   name: string;
@@ -28,6 +36,7 @@ export interface Course {
   deadline: string;
   status: 'Active' | 'Steady' | 'Cold';
   links: ResourceLink[];
+  topics: CourseTopic[];
   lastStudied?: string; // ISO date string
   attendance: AttendanceRecord[];
   studySessions: StudySession[];

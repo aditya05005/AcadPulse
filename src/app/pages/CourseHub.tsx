@@ -6,7 +6,9 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCourses } from '../context/CourseContext';
-import type { Course, ResourceLink, AttendanceRecord, StudySession, Reminder } from '../../lib/types';
+import type { Course, ResourceLink, AttendanceRecord, StudySession, Reminder, CourseTopic } from '../../lib/types';
+import { calculateCourseProgress } from '../../lib/courseProgress';
+import { extractTopicsFromSyllabus } from '../../lib/gemini';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -147,10 +149,15 @@ function buildWeeklyTimeline(courses: Course[], reminders: Reminder[]): Timeline
   return timeline;
 }
 
+function topicProgressLabel(topics: CourseTopic[]): string {
+  const progress = calculateCourseProgress(topics);
+  return topics.length === 0 ? '0% (no topics yet)' : `${progress}%`;
+}
+
 // ─── Course Detail ─────────────────────────────────────────────────────────────
 
 function CourseDetail({ course, onBack }: { course: Course; onBack: () => void }) {
-  const { updateLastStudied, markAttendance, addResource, removeResource, updateCourse, removeCourse, courses } = useCourses();
+  const { updateLastStudied, markAttendance, addResource, removeResource, removeCourse, courses, addTopic, addTopicsBulk, updateTopic, removeTopic } = useCourses();
 
   // Timer
   const [running, setRunning] = useState(false);
@@ -221,17 +228,21 @@ function CourseDetail({ course, onBack }: { course: Course; onBack: () => void }
   const [newLink, setNewLink] = useState({ label: '', url: '' });
   const [linkSaving, setLinkSaving] = useState(false);
   const [linkError, setLinkError] = useState('');
-  const [progressDraft, setProgressDraft] = useState(course.progress);
-  const [progressSaving, setProgressSaving] = useState(false);
-  const [progressSaved, setProgressSaved] = useState(false);
-  const [progressError, setProgressError] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleteSaving, setDeleteSaving] = useState(false);
   const [deleteError, setDeleteError] = useState('');
+  const [newTopic, setNewTopic] = useState('');
+  const [topicDrafts, setTopicDrafts] = useState<Record<string, string>>({});
+  const [topicSavingId, setTopicSavingId] = useState<string | null>(null);
+  const [syllabusUploading, setSyllabusUploading] = useState(false);
+  const [topicError, setTopicError] = useState('');
+  const syllabusInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
-    setProgressDraft(live.progress);
-  }, [live.progress]);
+    setTopicDrafts(
+      Object.fromEntries(live.topics.map((topic) => [topic.id, topic.title]))
+    );
+  }, [live.topics]);
 
   const handleAddResource = async () => {
     dismissKeyboard();
@@ -262,21 +273,6 @@ function CourseDetail({ course, onBack }: { course: Course; onBack: () => void }
     }
   };
 
-  const handleSaveProgress = async () => {
-    dismissKeyboard();
-    setProgressSaving(true);
-    setProgressSaved(false);
-    setProgressError('');
-    try {
-      await updateCourse({ ...live, progress: progressDraft });
-      setProgressSaved(true);
-    } catch (e) {
-      setProgressError(e instanceof Error ? e.message : 'Failed to update progress.');
-    } finally {
-      setProgressSaving(false);
-    }
-  };
-
   const handleDeleteCourse = async () => {
     dismissKeyboard();
     setDeleteSaving(true);
@@ -287,6 +283,86 @@ function CourseDetail({ course, onBack }: { course: Course; onBack: () => void }
     } catch (e) {
       setDeleteError(e instanceof Error ? e.message : 'Failed to delete course.');
       setDeleteSaving(false);
+    }
+  };
+
+  const handleAddTopic = async () => {
+    dismissKeyboard();
+    const title = newTopic.trim();
+    if (!title) return;
+    setTopicSavingId('new');
+    setTopicError('');
+    try {
+      await addTopic(live.id, title);
+      setNewTopic('');
+    } catch (e) {
+      setTopicError(e instanceof Error ? e.message : 'Failed to add topic.');
+    } finally {
+      setTopicSavingId(null);
+    }
+  };
+
+  const handleSyllabusUpload = async (file: File) => {
+    dismissKeyboard();
+    setSyllabusUploading(true);
+    setTopicError('');
+    try {
+      const topics = await extractTopicsFromSyllabus(file);
+      if (!topics.length) {
+        window.alert('error occured parsing, please create topics manually');
+        return;
+      }
+      await addTopicsBulk(live.id, topics);
+    } catch (e) {
+      console.error('Failed to extract topics from syllabus:', e);
+      window.alert('error occured parsing, please create topics manually');
+    } finally {
+      setSyllabusUploading(false);
+      if (syllabusInputRef.current) {
+        syllabusInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleTopicTitleSave = async (topic: CourseTopic) => {
+    const nextTitle = topicDrafts[topic.id]?.trim();
+    if (!nextTitle || nextTitle === topic.title) {
+      setTopicDrafts((prev) => ({ ...prev, [topic.id]: topic.title }));
+      return;
+    }
+    setTopicSavingId(topic.id);
+    setTopicError('');
+    try {
+      await updateTopic(live.id, { ...topic, title: nextTitle });
+    } catch (e) {
+      setTopicDrafts((prev) => ({ ...prev, [topic.id]: topic.title }));
+      setTopicError(e instanceof Error ? e.message : 'Failed to update topic.');
+    } finally {
+      setTopicSavingId(null);
+    }
+  };
+
+  const handleTopicToggle = async (topic: CourseTopic) => {
+    setTopicSavingId(topic.id);
+    setTopicError('');
+    try {
+      await updateTopic(live.id, { ...topic, isCompleted: !topic.isCompleted });
+    } catch (e) {
+      setTopicError(e instanceof Error ? e.message : 'Failed to update topic.');
+    } finally {
+      setTopicSavingId(null);
+    }
+  };
+
+  const handleTopicDelete = async (topicId: string) => {
+    setTopicSavingId(topicId);
+    setTopicError('');
+    try {
+      await removeTopic(live.id, topicId);
+    } catch (e) {
+      setTopicError(e instanceof Error ? e.message : 'Failed to remove topic.');
+    } finally {
+      setTopicSavingId(null);
     }
   };
 
@@ -322,46 +398,108 @@ function CourseDetail({ course, onBack }: { course: Course; onBack: () => void }
         </div>
 
         <div className="mb-6 rounded-xl border border-border bg-card p-6">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Course Progress</h2>
-            <span className="text-sm font-medium text-accent">{progressDraft}%</span>
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold">Topics</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Progress is based on completed topics. No topics means 0%.
+              </p>
+            </div>
+            <span className="rounded-full border border-accent/30 bg-accent/10 px-3 py-1 text-sm font-medium text-accent">
+              {topicProgressLabel(live.topics)}
+            </span>
           </div>
-          <input
-            type="range"
-            min="0"
-            max="100"
-            value={progressDraft}
-            onChange={(e) => {
-              setProgressDraft(Number(e.target.value));
-              setProgressSaved(false);
-              setProgressError('');
-            }}
-            className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-muted accent-accent"
-          />
-          <div className="mt-4 flex items-center gap-3">
+
+          <div className="mb-4 flex flex-wrap gap-2">
+            <input
+              ref={syllabusInputRef}
+              type="file"
+              accept=".pdf,image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) void handleSyllabusUpload(file);
+              }}
+            />
             <button
               type="button"
-              onClick={handleSaveProgress}
-              disabled={progressSaving || progressDraft === live.progress}
+              onClick={() => syllabusInputRef.current?.click()}
+              disabled={syllabusUploading}
+              className="rounded-lg border border-border bg-muted/30 px-4 py-2 text-sm font-medium transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {syllabusUploading ? 'Uploading...' : 'Upload Syllabus'}
+            </button>
+          </div>
+
+          <div className="mb-4 flex gap-2">
+            <input
+              type="text"
+              value={newTopic}
+              onChange={(e) => setNewTopic(e.target.value)}
+              placeholder="Add a topic name"
+              className="flex-1 rounded-lg border border-border bg-muted/30 px-4 py-2 text-sm focus:border-accent focus:outline-none"
+            />
+            <button
+              type="button"
+              onClick={handleAddTopic}
+              disabled={topicSavingId === 'new' || !newTopic.trim()}
               className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {progressSaving ? 'Saving...' : 'Save Progress'}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setProgressDraft(live.progress);
-                setProgressSaved(false);
-                setProgressError('');
-              }}
-              disabled={progressSaving || progressDraft === live.progress}
-              className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Reset
+              {topicSavingId === 'new' ? 'Adding...' : 'Add Topic'}
             </button>
           </div>
-          {progressSaved && <p className="mt-3 text-sm text-emerald-600 dark:text-emerald-400">Progress updated.</p>}
-          {progressError && <p className="mt-3 text-sm text-rose-600 dark:text-rose-400">{progressError}</p>}
+
+          {topicError && <p className="mb-3 text-sm text-rose-600 dark:text-rose-400">{topicError}</p>}
+
+          {live.topics.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No topics added yet.</p>
+          ) : (
+            <div className="space-y-3">
+              {live.topics.map((topic) => {
+                const title = topicDrafts[topic.id] ?? topic.title;
+                return (
+                  <div
+                    key={topic.id}
+                    className="flex items-center gap-3 rounded-xl border border-border bg-muted/20 p-3"
+                  >
+                    <label className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={topic.isCompleted}
+                        onChange={() => handleTopicToggle(topic)}
+                        disabled={topicSavingId === topic.id}
+                        className="h-4 w-4 rounded border-border text-accent focus:ring-accent"
+                      />
+                    </label>
+                    <input
+                      type="text"
+                      value={title}
+                      onChange={(e) => setTopicDrafts((prev) => ({ ...prev, [topic.id]: e.target.value }))}
+                      onBlur={() => handleTopicTitleSave(topic)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          (e.currentTarget as HTMLInputElement).blur();
+                        }
+                      }}
+                      disabled={topicSavingId === topic.id}
+                      className={
+                        'flex-1 rounded-lg border border-transparent bg-transparent px-2 py-1 text-sm outline-none transition-colors focus:border-accent/30 focus:bg-background ' +
+                        (topic.isCompleted ? 'text-muted-foreground line-through' : 'text-foreground')
+                      }
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleTopicDelete(topic.id)}
+                      disabled={topicSavingId === topic.id}
+                      className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-rose-500 disabled:opacity-50"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Study Timer */}
@@ -705,7 +843,6 @@ function AddCourseModal({ onAdd, onClose }: AddCourseModalProps) {
   const [name, setName] = useState('');
   const [links, setLinks] = useState([{ label: '', url: '' }]);
   const [deadline, setDeadline] = useState('');
-  const [progress, setProgress] = useState(0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -717,10 +854,10 @@ function AddCourseModal({ onAdd, onClose }: AddCourseModalProps) {
   const handle = async () => {
     dismissKeyboard();
     if (!name.trim()) { setError('Course name is required.'); return; }
-  const course: Course = {
+    const course: Course = {
       id: crypto.randomUUID(),
       name: name.trim(),
-      progress,
+      progress: 0,
       deadline: deadline || 'No deadline set',
       status: 'Active',
       links: links.filter((l) => l.label && l.url).map((l) => ({
@@ -728,6 +865,7 @@ function AddCourseModal({ onAdd, onClose }: AddCourseModalProps) {
       })),
       attendance: [],
       studySessions: [],
+      topics: [],
       createdAt: new Date().toISOString(),
     };
     setSaving(true);
@@ -786,14 +924,6 @@ function AddCourseModal({ onAdd, onClose }: AddCourseModalProps) {
             <input type="text" value={deadline} onChange={(e) => setDeadline(e.target.value)}
               className="w-full rounded-lg border border-border bg-muted/30 px-4 py-2 text-sm focus:border-accent focus:outline-none"
               placeholder="e.g., Assignment due Mar 25" />
-          </div>
-          <div>
-            <label className="mb-2 flex items-center justify-between text-sm font-medium">
-              <span>Progress</span><span className="text-accent">{progress}%</span>
-            </label>
-            <input type="range" min="0" max="100" value={progress}
-              onChange={(e) => setProgress(Number(e.target.value))}
-              className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-muted accent-accent" />
           </div>
           {error && <p className="text-sm text-rose-600 dark:text-rose-400">{error}</p>}
         </div>
@@ -885,7 +1015,10 @@ export function CourseHub() {
               {courses.length === 0 ? (
                 <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-16 text-center">
                   <p className="text-muted-foreground">No courses yet.</p>
-                  <button type="button" onClick={() => setShowAddCourse(true)}
+                  <button type="button" onClick={() => {
+                    if (!requireSignIn()) return;
+                    setShowAddCourse(true);
+                  }}
                     className="mt-4 flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:opacity-90">
                     <Plus className="h-4 w-4" />Add your first course
                   </button>
