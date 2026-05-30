@@ -34,7 +34,24 @@ cp .env.example .env.local
 ```
 VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key
-VITE_GEMINI_API_KEY=your-gemini-api-key
+```
+
+5. Set the Gemini secret for the Edge Function:
+
+```bash
+supabase secrets set GEMINI_API_KEY=your-gemini-api-key
+```
+
+Optional:
+
+```bash
+supabase secrets set GEMINI_MODEL=gemini-1.5-flash
+```
+
+6. Deploy the Edge Function:
+
+```bash
+supabase functions deploy extract-topics
 ```
 
 ### 3. Run
