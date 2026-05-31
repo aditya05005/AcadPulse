@@ -28,6 +28,37 @@ function assert(error: { message: string } | null, context: string): void {
   if (error) throw new Error(`[db/${context}] ${error.message}`);
 }
 
+function isUsernameConstraintError(
+  error: { message?: string; details?: string; code?: string } | null | undefined,
+): boolean {
+  const message = error?.message?.toLowerCase() ?? '';
+  const details = error?.details?.toLowerCase() ?? '';
+  const code = error?.code ?? '';
+  return message.includes('duplicate key')
+    || message.includes('unique constraint')
+    || message.includes('profiles_username_key')
+    || message.includes('database error while saving new user')
+    || details.includes('duplicate key')
+    || details.includes('unique constraint')
+    || details.includes('profiles_username_key')
+    || details.includes('database error while saving new user')
+    || code === '23505'
+    || code === '409'
+    || code === 'unique_violation';
+}
+
+async function checkUsernameTaken(username: string): Promise<boolean> {
+  const { data, error } = await supabase.functions.invoke<{ taken: boolean }>('check-username', {
+    body: { username },
+  });
+
+  if (error) {
+    throw new Error(error.message || 'Failed to check username.');
+  }
+
+  return Boolean(data?.taken);
+}
+
 /**
  * Reads the user ID from the LOCAL in-memory session — no network call.
  * (getUser() was the old approach and caused an extra round-trip per operation.)
@@ -190,6 +221,10 @@ export async function signIn(email: string, password: string): Promise<User> {
 export async function signUp(
   email: string, password: string, username: string
 ): Promise<User> {
+  if (await checkUsernameTaken(username)) {
+    throw new Error('Username is taken.');
+  }
+
   // Pass username in options.data so the DB trigger (handle_new_user) picks it
   // up directly via raw_user_meta_data->>'username' — no race condition.
   const { data, error } = await supabase.auth.signUp({
@@ -197,7 +232,10 @@ export async function signUp(
     password,
     options: { data: { username } },
   });
-  assert(error, 'signUp');
+  if (error) {
+    if (isUsernameConstraintError(error)) throw new Error('Username is taken.');
+    assert(error, 'signUp');
+  }
 
   // If email confirmation is ON, there's no session yet — return a stub.
   // The profile row was already created by the DB trigger.
@@ -215,7 +253,10 @@ export async function signUp(
     id: data.user!.id, username, email,
     created_at: new Date().toISOString(),
   });
-  assert(pe, 'signUp/profile');
+  if (pe) {
+    if (isUsernameConstraintError(pe)) throw new Error('Username is taken.');
+    assert(pe, 'signUp/profile');
+  }
 
   return { id: data.user!.id, username, email, createdAt: new Date().toISOString() };
 }

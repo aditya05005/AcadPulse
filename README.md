@@ -54,6 +54,14 @@ supabase secrets set GEMINI_MODEL=gemini-1.5-flash
 supabase functions deploy extract-topics
 ```
 
+7. Set the server-side username check credentials and deploy that function too:
+
+```bash
+supabase secrets set SUPABASE_URL=https://your-project.supabase.co
+supabase secrets set SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+supabase functions deploy check-username
+```
+
 ### 3. Run
 
 ```bash

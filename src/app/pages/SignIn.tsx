@@ -72,6 +72,9 @@ export function SignIn() {
       }
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Something went wrong.';
+      if (msg === 'Username is taken.') {
+        window.alert(msg);
+      }
       setError(msg);
     } finally {
       setLoading(false);
